@@ -1,22 +1,22 @@
 import { useState } from 'react';
-import { analyzeText } from '../services/api';
+import { processText } from '../services/api';
 
 export const useTextAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const performAnalysis = async (text: string) => {
+  const performProcessing = async (text: string) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await analyzeText(text);
+      const result = await processText(text);
       setLoading(false);
       return result;
     } catch (err) {
-      setError('Failed to analyze text');
+      setError('Failed to process text');
       setLoading(false);
     }
   };
 
-  return { performAnalysis, loading, error };
+  return { performProcessing, loading, error };
 };
