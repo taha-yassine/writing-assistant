@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { processText } from '../services/api';
 
-export const useTextAnalysis = () => {
+export const useTextProcessing = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
