@@ -19,6 +19,7 @@ const TextEditor: React.FC = () => {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Start writing or paste your text here..."
+        spellCheck="false"
       />
       <button
         className="absolute bottom-4 right-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
