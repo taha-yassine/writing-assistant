@@ -5,7 +5,7 @@ export const useTextProcessing = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const performProcessing = async (text: string) => {
+  const performProcessing = async (text: string): Promise<[string[], string[]] | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -14,6 +14,9 @@ export const useTextProcessing = () => {
       return result;
     } catch (err) {
       setError('Failed to process text');
+      setLoading(false);
+      return null;
+    } finally {
       setLoading(false);
     }
   };

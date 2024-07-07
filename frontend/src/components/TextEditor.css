@@ -1,0 +1,13 @@
+.highlight {
+    text-decoration: underline wavy red;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+  
+  /* Fallback for browsers that don't support wavy underlines */
+  @supports not (text-decoration: underline wavy) {
+    .highlight {
+      border-bottom: 2px dotted red;
+      text-decoration: none;
+    }
+  }
