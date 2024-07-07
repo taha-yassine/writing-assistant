@@ -10,6 +10,11 @@ const TextEditor: React.FC = () => {
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [corrections, setCorrections] = useState<string[]>([]);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean }>({
+    x: 0,
+    y: 0,
+    visible: false,
+  });
 
   const editorRef = useRef<HTMLDivElement>(null);
   const { performProcessing, loading, error } = useTextProcessing();
@@ -23,6 +28,19 @@ const TextEditor: React.FC = () => {
   useEffect(() => {
     highlightErrors();
   }, [errors, corrections]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contextMenu.visible && !event.defaultPrevented) {
+        setContextMenu({ ...contextMenu, visible: false });
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [contextMenu]);
 
   const handleChange = () => {
     if (editorRef.current) {
@@ -58,16 +76,65 @@ const TextEditor: React.FC = () => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, visible: true });
+  };
+
+  const handleContextMenuAction = async (action: string) => {
+    if (!editorRef.current) return;
+
+    switch (action) {
+      case 'cut':
+        try {
+          await navigator.clipboard.writeText(window.getSelection()?.toString() || '');
+          document.execCommand('delete');
+        } catch (err) {
+          document.execCommand('cut');
+        }
+        break;
+      case 'copy':
+        try {
+          await navigator.clipboard.writeText(window.getSelection()?.toString() || '');
+        } catch (err) {
+          document.execCommand('copy');
+        }
+        break;
+      case 'paste':
+        try {
+          const text = await navigator.clipboard.readText();
+          document.execCommand('insertText', false, text);
+        } catch (err) {
+          document.execCommand('paste');
+        }
+        break;
+    }
+
+    setContextMenu({ ...contextMenu, visible: false });
+    handleChange();
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       <div
         ref={editorRef}
         className="flex-1 p-4 overflow-auto border border-gray-300 focus:outline-none whitespace-pre-wrap"
         contentEditable
         onInput={handleChange}
+        onContextMenu={handleContextMenu}
         suppressContentEditableWarning
         spellCheck="false"
       />
+      {contextMenu.visible && (
+        <div
+          className="absolute bg-white border border-gray-300 shadow-md rounded text-sm"
+          style={{ top: contextMenu.y, left: contextMenu.x, minWidth: '100px' }}
+        >
+          <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('cut')}>Cut</button>
+          <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('copy')}>Copy</button>
+          <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('paste')}>Paste</button>
+        </div>
+      )}
       <button
         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none self-end"
         onClick={handleProcess}
