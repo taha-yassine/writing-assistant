@@ -1,16 +1,14 @@
 import React from 'react';
 import TextEditor from './components/TextEditor';
-import ContextPanel from './components/ContextPanel';
-import AIToolbar from './components/AIToolbar';
+import SidePanel from './components/SidePanel';
 
 function App() {
   return (
     <div className="flex h-screen bg-gray-100">
-      <div className="flex-1 flex flex-col">
-        <AIToolbar />
+      <div className="flex-1">
         <TextEditor />
       </div>
-      <ContextPanel />
+      <SidePanel />
     </div>
   );
 }

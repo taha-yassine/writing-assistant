@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const ContextPanel: React.FC = () => {
+const SidePanel: React.FC = () => {
   const [context, setContext] = useState('');
 
   return (
@@ -12,14 +12,8 @@ const ContextPanel: React.FC = () => {
         onChange={(e) => setContext(e.target.value)}
         placeholder="Add any additional context or notes here..."
       />
-      <div className="mt-4">
-        <label htmlFor="file-upload" className="cursor-pointer bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
-          Upload File
-        </label>
-        <input id="file-upload" type="file" className="hidden" />
-      </div>
     </div>
   );
 };
 
-export default ContextPanel;
+export default SidePanel;
