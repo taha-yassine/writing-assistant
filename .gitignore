@@ -2,3 +2,6 @@ flake.nix
 flake.lock
 .direnv
 .envrc
+.aider*
+.env
+.vscode
