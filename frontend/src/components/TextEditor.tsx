@@ -81,32 +81,20 @@ const TextEditor: React.FC = () => {
     setContextMenu({ x: e.clientX, y: e.clientY, visible: true });
   };
 
-  const handleContextMenuAction = async (action: string) => {
+  const handleContextMenuAction = (action: string) => {
     if (!editorRef.current) return;
 
     switch (action) {
+      // execCommand is being deprecated
+      // May need a better solution in the future
       case 'cut':
-        try {
-          await navigator.clipboard.writeText(window.getSelection()?.toString() || '');
-          document.execCommand('delete');
-        } catch (err) {
           document.execCommand('cut');
-        }
         break;
       case 'copy':
-        try {
-          await navigator.clipboard.writeText(window.getSelection()?.toString() || '');
-        } catch (err) {
           document.execCommand('copy');
-        }
         break;
       case 'paste':
-        try {
-          const text = await navigator.clipboard.readText();
-          document.execCommand('insertText', false, text);
-        } catch (err) {
           document.execCommand('paste');
-        }
         break;
     }
 
