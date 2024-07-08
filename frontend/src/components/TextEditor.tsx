@@ -10,10 +10,13 @@ const TextEditor: React.FC = () => {
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [corrections, setCorrections] = useState<string[]>([]);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean }>({
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean; word: string; correction: string; node: HTMLSpanElement | null; }>({
     x: 0,
     y: 0,
     visible: false,
+    word: '',
+    correction: '',
+    node: null,
   });
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -32,7 +35,7 @@ const TextEditor: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contextMenu.visible && !event.defaultPrevented) {
-        setContextMenu({ ...contextMenu, visible: false });
+        setContextMenu(prev => ({ ...prev, visible: false }));
       }
     };
 
@@ -40,7 +43,7 @@ const TextEditor: React.FC = () => {
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [contextMenu]);
+  }, [contextMenu.visible]);
 
   const handleChange = () => {
     if (editorRef.current) {
@@ -66,7 +69,7 @@ const TextEditor: React.FC = () => {
       let content = text;
       errors.forEach((error, index) => {
         const regex = new RegExp(`\\b${escapeRegExp(error)}\\b`, 'g');
-        content = content.replace(regex, `<span class="highlight">${error}</span>`);
+        content = content.replace(regex, `<span class="highlight" data-correction="${corrections[index]}">${error}</span>`);
       });
       editorRef.current.innerHTML = content;
     }
@@ -78,28 +81,63 @@ const TextEditor: React.FC = () => {
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, visible: true });
+    if (editorRef.current) {
+      // caretRangeFromPoint only works in Chrome
+      // Needs a better solution for cross-browser compatibility
+      const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      if (range) {
+        const node = range.startContainer.parentNode as HTMLElement;
+        if (node.classList && node.classList.contains('highlight')) {
+          const word = node.textContent || '';
+          const correction = node.getAttribute('data-correction') || '';
+          setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            visible: true,
+            word,
+            correction,
+            node: node as HTMLSpanElement,
+          });
+        } else {
+          setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            visible: true,
+            word: '',
+            correction: '',
+            node: null,
+          });
+        }
+      }
+    }
   };
 
   const handleContextMenuAction = (action: string) => {
     if (!editorRef.current) return;
 
     switch (action) {
+      case 'correct':
+        if (contextMenu.correction && contextMenu.node && contextMenu.node.parentNode) {
+          const textNode = document.createTextNode(contextMenu.correction);
+          contextMenu.node.parentNode.replaceChild(textNode, contextMenu.node);
+          handleChange();
+        }
+        break;
+
       // execCommand is being deprecated
       // May need a better solution in the future
       case 'cut':
-          document.execCommand('cut');
+        document.execCommand('cut');
         break;
       case 'copy':
-          document.execCommand('copy');
+        document.execCommand('copy');
         break;
       case 'paste':
-          document.execCommand('paste');
+        document.execCommand('paste');
         break;
     }
 
-    setContextMenu({ ...contextMenu, visible: false });
-    handleChange();
+    setContextMenu(prev => ({ ...prev, visible: false }));
   };
 
   return (
@@ -118,9 +156,21 @@ const TextEditor: React.FC = () => {
           className="absolute bg-white border border-gray-300 shadow-md rounded text-sm"
           style={{ top: contextMenu.y, left: contextMenu.x, minWidth: '100px' }}
         >
-          <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('cut')}>Cut</button>
-          <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('copy')}>Copy</button>
-          <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('paste')}>Paste</button>
+          {contextMenu.correction && (
+            <div className="border-b border-gray-200">
+              <button 
+                className="block w-full text-left px-3 py-1 hover:bg-gray-100" 
+                onClick={() => handleContextMenuAction('correct')}
+              >
+                <span className="font-semibold">{contextMenu.correction}</span>
+              </button>
+            </div>
+          )}
+          <div>
+            <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('cut')}>Cut</button>
+            <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('copy')}>Copy</button>
+            <button className="block w-full text-left px-3 py-1 hover:bg-gray-100" onClick={() => handleContextMenuAction('paste')}>Paste</button>
+          </div>
         </div>
       )}
       <button
