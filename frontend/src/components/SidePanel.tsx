@@ -12,6 +12,9 @@ const SidePanel: React.FC = () => {
         onChange={(e) => setContext(e.target.value)}
         placeholder="Add any additional context or notes here..."
       />
+      <p className="text-sm text-yellow-600 mb-4">
+        <strong>Note:</strong> AI is used to perform the analysis. Results may not always be accurate.
+      </p>
     </div>
   );
 };
