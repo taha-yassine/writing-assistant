@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
 from pydantic import BaseModel
 from typing import List
 import os
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
 load_dotenv()
 
@@ -28,6 +28,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+client = AsyncOpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
 
 prompt = """
 You are a writing assistant that helps correct and improve the piece of text you're provided with. You will provide corrections and improvements for the following aspects ONLY:
@@ -58,9 +62,6 @@ alsso -> also
 aqward -> awkward
 skil.s -> skills
 """
-# prompt = """
-# Test
-# """
 
 @app.get("/")
 async def root():
@@ -68,37 +69,19 @@ async def root():
 
 @app.post("/process")
 async def process(request: Request):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            },
-            json={
-                "model": MODEL,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": 'Input:\n'+request.text
-                    },
-                    {
-                        "role": "assistant",
-                        "content": 'Output:\n'
-                    },
-                ],
-                "stream": False
-            }
-        )
-    response_data = response.json()
+    response = await client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": 'Input:\n'+request.text},
+            {"role": "assistant", "content": 'Output:\n'}
+        ]
+    )
     
-    if 'choices' not in response_data or not response_data['choices']:
+    if not response.choices:
         raise HTTPException(status_code=500, detail="Unexpected response from OpenRouter API")
     
-    content = response_data['choices'][0]['message']['content']
+    content = response.choices[0].message.content
     
     lines = [line.strip() for line in content.split('\n') if line.strip()]
     
@@ -111,7 +94,6 @@ async def process(request: Request):
             corrections.append(correction.strip())
     
     return Response(errors=errors, corrections=corrections)
-
 
 if __name__ == "__main__":
     import uvicorn

@@ -31,6 +31,7 @@
               httpx
               ipykernel
               python-dotenv
+              openai
             ]);
         };
       });
