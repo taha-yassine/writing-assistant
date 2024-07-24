@@ -32,6 +32,7 @@
               ipykernel
               python-dotenv
               openai
+              instructor
             ]);
         };
       });

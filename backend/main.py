@@ -1,10 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
+from typing import List, Iterable
 import os
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+import instructor
 
 load_dotenv()
 
@@ -18,6 +19,10 @@ class Response(BaseModel):
     errors: List[str]
     corrections: List[str]
 
+class Suggestion(BaseModel):
+    old: str = Field(description="Old text to be corrected")
+    new: str = Field(description="New text to replace the old text")
+
 app = FastAPI()
 
 app.add_middleware(
@@ -28,39 +33,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = AsyncOpenAI(
+client = instructor.from_openai(AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
-)
+))
 
 prompt = """
 You are a writing assistant that helps correct and improve the piece of text you're provided with. You will provide corrections and improvements for the following aspects ONLY:
 - Grammar
 - Spelling
 - Punctuation
-Reply ONLY with a list of incorrect items and their suggested correction. That would correspond to the Answer bellow.
-
-> Example
-Input:
-Onceupon a tyme, in a far-of kingdum,, their lived a yung princes named Lila. She wuz knoen four bravry her and kind-ness, but alsso for her aqward social skil.s
-
-Output:
-Onceupon -> Once upon
-tyme -> time
-far-of -> far-off
-kingdum -> kingdom
-kingdum, -> kingdom,
-their -> there
-yung -> young
-princes -> princess
-wuz -> was
-knoen -> known
-four -> for
-bravry her -> her bravery
-kind-ness -> kindness
-alsso -> also
-aqward -> awkward
-skil.s -> skills
+Reply ONLY with a JSON list of suggested of corrections.
 """
 
 @app.get("/")
@@ -73,27 +56,12 @@ async def process(request: Request):
         model=MODEL,
         messages=[
             {"role": "system", "content": prompt},
-            {"role": "user", "content": 'Input:\n'+request.text},
-            {"role": "assistant", "content": 'Output:\n'}
-        ]
+            {"role": "user", "content": request.text},
+        ],
+        response_model=Iterable[Suggestion]
     )
-    
-    if not response.choices:
-        raise HTTPException(status_code=500, detail="Unexpected response from OpenRouter API")
-    
-    content = response.choices[0].message.content
-    
-    lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
-    errors = []
-    corrections = []
-    for line in lines:
-        if '->' in line:
-            error, correction = line.split('->')
-            errors.append(error.strip())
-            corrections.append(correction.strip())
-    
-    return Response(errors=errors, corrections=corrections)
+
+    return response
 
 if __name__ == "__main__":
     import uvicorn
