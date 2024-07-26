@@ -2,6 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTextProcessing } from '../hooks/useTextProcessing';
 import './TextEditor.css';
 
+interface Suggestion {
+  old: string;
+  new: string;
+}
+
 const TextEditor: React.FC = () => {
   const [text, setText] = useState(() => {
     return process.env.NODE_ENV === 'development'
@@ -10,8 +15,7 @@ const TextEditor: React.FC = () => {
   });
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [corrections, setCorrections] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean; word: string; correction: string; node: HTMLSpanElement | null; }>({
     x: 0,
     y: 0,
@@ -33,7 +37,7 @@ const TextEditor: React.FC = () => {
 
   useEffect(() => {
     highlightErrors();
-  }, [errors, corrections]);
+  }, [suggestions]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,9 +70,7 @@ const TextEditor: React.FC = () => {
     if (text.trim()) {
       const result = await performProcessing(text);
       if (result) {
-        const [newErrors, newCorrections] = result;
-        setErrors(newErrors);
-        setCorrections(newCorrections);
+        setSuggestions(result);
       } else {
         console.error('Text processing failed');
       }
@@ -76,11 +78,11 @@ const TextEditor: React.FC = () => {
   };
 
   const highlightErrors = () => {
-    if (editorRef.current && errors.length > 0) {
+    if (editorRef.current && suggestions.length > 0) {
       let content = text;
-      errors.forEach((error, index) => {
-        const regex = new RegExp(`\\b${escapeRegExp(error)}\\b`, 'g');
-        content = content.replace(regex, `<span class="highlight" data-correction="${corrections[index]}">${error}</span>`);
+      suggestions.forEach((suggestion) => {
+        const regex = new RegExp(`\\b${escapeRegExp(suggestion.old)}\\b`, 'g');
+        content = content.replace(regex, `<span class="highlight" data-correction="${suggestion.new}">${suggestion.old}</span>`);
       });
       editorRef.current.innerHTML = content;
     }

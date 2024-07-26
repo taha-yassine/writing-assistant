@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { processText } from '../services/api';
 
+interface Suggestion {
+  old: string;
+  new: string;
+}
+
 export const useTextProcessing = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const performProcessing = async (text: string): Promise<[string[], string[]] | null> => {
+  const performProcessing = async (text: string): Promise<Suggestion[] | null> => {
     setLoading(true);
     setError(null);
     try {
