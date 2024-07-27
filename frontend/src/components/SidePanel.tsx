@@ -14,9 +14,14 @@ interface Marker {
   enabled: boolean;
 }
 
-const SidePanel: React.FC = () => {
+const SidePanel: React.FC<{
+  wordCount: number;
+  charCount: number;
+  onProcess: () => void;
+  loading: boolean;
+}> = ({ wordCount, charCount, onProcess, loading }) => {
   const [markers, setMarkers] = useState<Marker[]>([
-    { id: 1, title: 'Typos', description: 'Fix grammar and orthographic errors', color: '#FF0000', enabled: true },
+    { id: 1, title: 'Linguistic errors', description: 'Fix grammar and orthographic errors', color: '#FF0000', enabled: true },
     { id: 2, title: 'Consistency', description: 'Make the document consistent', color: '#00FF00', enabled: true },
   ]);
   const [context, setContext] = useState('');
@@ -51,7 +56,7 @@ const SidePanel: React.FC = () => {
   };
 
   return (
-    <div className="w-1/4 bg-gray-50 shadow-lg p-4">
+    <div className="w-1/4 bg-gray-50 shadow-lg p-4 flex flex-col h-full">
       <h2 className="text-lg font-semibold mb-4">Markers</h2>
       <TooltipProvider>
         {markers.map(marker => (
@@ -127,14 +132,36 @@ const SidePanel: React.FC = () => {
       
       <h2 className="text-lg font-semibold mt-6 mb-4">Context</h2>
       <Textarea
-        className="w-full h-64 resize-none"
+        className="w-full h-32 resize-none"
         value={context}
         onChange={(e) => setContext(e.target.value)}
         placeholder="Add any additional context or notes here..."
       />
-      <p className="text-sm text-yellow-600 mt-2">
-        <strong>Note:</strong> AI is used to perform the analysis. Results may not always be accurate.
-      </p>
+
+      <div className="mt-auto">
+        <div className="text-sm text-gray-500 mb-2">
+          <div className="flex justify-between">
+            <span>Words:</span>
+            <span className="font-bold">{wordCount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Characters:</span>
+            <span className="font-bold">{charCount}</span>
+          </div>
+        </div>
+
+        <p className="text-sm text-yellow-600 mb-2">
+          <strong>Note:</strong> AI is used to perform the analysis. Results may not always be accurate.
+        </p>
+
+        <Button
+          className="w-full bg-blue-500 text-white hover:bg-blue-600"
+          onClick={onProcess}
+          disabled={loading}
+        >
+          {loading ? 'Processing...' : 'Process'}
+        </Button>
+      </div>
     </div>
   );
 };
