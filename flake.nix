@@ -33,7 +33,9 @@
               python-dotenv
               openai
               instructor
-            ]);
+            ] ++
+            uvicorn.optional-dependencies.standard
+            );
         };
       });
     };
