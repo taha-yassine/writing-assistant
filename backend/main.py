@@ -11,6 +11,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 import instructor
+from utils import diff_json
 
 load_dotenv()
 
@@ -21,6 +22,11 @@ client_openrouter = instructor.from_openai(AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
 ))
+
+client_tgi = AsyncOpenAI(
+    base_url="http://0.0.0.0:8080/v1",
+    api_key="-",
+)
 
 MODELZOO = [
     # LLama
@@ -36,6 +42,9 @@ MODELZOO = [
     # GPT
     {"model": "openai/gpt-4o-mini", "client": "openrouter"},
     {"model": "openai/gpt-4o", "client": "openrouter"},
+
+    # CoEdIT
+    {"model": "grammarly/coedit-large", "client": "tgi"},
 ]
 
 class TextRequest(BaseModel):
@@ -101,6 +110,14 @@ async def process(request: TextRequest):
             response_model=Iterable[Suggestion]
         )
         response_json = json.dumps([r.model_dump() for r in response])
+    elif client == "tgi":
+        response = await client.completions.create(
+            model=model,
+            prompt="Fix grammar, spelling, and punctuation: " + request.text,
+            stream=False,
+        )
+        response = diff_json(request.text, response.choices[0].text)
+        response_json = json.dumps(response)
 
     # Log request to DB
     con = sqlite3.connect('history.db')
