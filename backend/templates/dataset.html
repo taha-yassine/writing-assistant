@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dataset View</title>
+</head>
+<body>
+    <h1>Dataset</h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Timestamp</th>
+            <th>Model</th>
+            <th>Input</th>
+            <th>Output</th>
+        </tr>
+        {% for row in dataset %}
+        <tr>
+            {% for value in row %}
+            <td>{{ value }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

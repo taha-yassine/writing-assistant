@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import List, Iterable
 import os
@@ -29,7 +31,7 @@ MODELZOO = [
     'openai/gpt-4o',
 ]
 
-class Request(BaseModel):
+class TextRequest(BaseModel):
     text: str
 
 class Response(BaseModel):
@@ -83,7 +85,7 @@ async def root():
     return {"message": "Hello World"}
 
 @app.post("/process")
-async def process(request: Request):
+async def process(request: TextRequest):
     response = await client.chat.completions.create(
         model=MODELZOO[6],
         messages=[
@@ -102,6 +104,17 @@ async def process(request: Request):
     con.close()
 
     return response
+
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/history", response_class=HTMLResponse)
+async def get_dataset_view(request: Request):
+    con = sqlite3.connect('history.db')
+    c = con.cursor()
+    c.execute("SELECT * FROM history ORDER BY timestamp DESC")
+    dataset = c.fetchall()
+    con.close()
+    return templates.TemplateResponse("dataset.html", {"request": request, "dataset": dataset})
 
 if __name__ == "__main__":
     import uvicorn
