@@ -86,8 +86,9 @@ async def root():
 
 @app.post("/process")
 async def process(request: TextRequest):
+    model = MODELZOO[6]
     response = await client.chat.completions.create(
-        model=MODELZOO[6],
+        model=model,
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": request.text},
@@ -99,7 +100,7 @@ async def process(request: TextRequest):
     con = sqlite3.connect('history.db')
     c = con.cursor()
     c.execute("INSERT INTO history (timestamp, model, input, output) VALUES (?, ?, ?, ?)",
-              (datetime.now().isoformat(), MODELZOO[6], request.text, json.dumps([r.model_dump() for r in response])))
+              (datetime.now().isoformat(), model, request.text, json.dumps([r.model_dump() for r in response])))
     con.commit()
     con.close()
 
