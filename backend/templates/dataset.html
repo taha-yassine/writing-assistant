@@ -1,25 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Dataset View</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            font-weight: 600;
+            color: #555;
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+        }
+        .old-word {
+            color: #e74c3c;
+            text-decoration: line-through;
+        }
+        .new-word {
+            color: #27ae60;
+        }
+    </style>
 </head>
 <body>
-    <h1>Dataset</h1>
     <table>
-        <tr>
-            <th>ID</th>
-            <th>Timestamp</th>
-            <th>Model</th>
-            <th>Input</th>
-            <th>Output</th>
-        </tr>
-        {% for row in dataset %}
-        <tr>
-            {% for value in row %}
-            <td>{{ value }}</td>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                <th>Model</th>
+                <th>Processed text</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in dataset %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td class="timestamp">{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td class="processed-text" data-input="{{ row[3] }}" data-output="{{ row[4] }}"></td>
+            </tr>
             {% endfor %}
-        </tr>
-        {% endfor %}
+        </tbody>
     </table>
+
+    <script>
+        function processText(input, output) {
+            let processedText = input;
+            const changes = JSON.parse(output);
+            
+            changes.forEach(change => {
+                const oldWord = change.old;
+                const newWord = change.new;
+                const regex = new RegExp(oldWord, 'g');
+                processedText = processedText.replace(regex, `<span class="old-word">${oldWord}</span><span class="new-word">${newWord}</span>`);
+            });
+            
+            return processedText;
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cells = document.querySelectorAll('.processed-text');
+            cells.forEach(cell => {
+                const input = cell.getAttribute('data-input');
+                const output = cell.getAttribute('data-output');
+                cell.innerHTML = processText(input, output);
+            });
+
+            const timestampCells = document.querySelectorAll('.timestamp');
+            timestampCells.forEach(cell => {
+                cell.textContent = formatTimestamp(cell.textContent);
+            });
+        });
+    </script>
 </body>
 </html>
