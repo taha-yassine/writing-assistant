@@ -33,6 +33,7 @@
               python-dotenv
               openai
               instructor
+              jinja2
             ] ++
             uvicorn.optional-dependencies.standard
             );
