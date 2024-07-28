@@ -15,20 +15,27 @@ import instructor
 load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+
+# Clients
+client_openrouter = instructor.from_openai(AsyncOpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+))
+
 MODELZOO = [
     # LLama
-    'meta-llama/llama-3.1-405b-instruct',
-    'meta-llama/llama-3.1-70b-instruct',
-    'meta-llama/llama-3.1-8b-instruct:free',
+    {"model": "meta-llama/llama-3.1-405b-instruct", "client": "openrouter"},
+    {"model": "meta-llama/llama-3.1-70b-instruct", "client": "openrouter"},
+    {"model": "meta-llama/llama-3.1-8b-instruct:free", "client": "openrouter"},
     
     # Claude
-    'anthropic/claude-3-haiku',
-    'anthropic/claude-3.5-sonnet',
-    'anthropic/claude-3-opus',
+    {"model": "anthropic/claude-3-haiku", "client": "openrouter"},
+    {"model": "anthropic/claude-3.5-sonnet", "client": "openrouter"},
+    {"model": "anthropic/claude-3-opus", "client": "openrouter"},
 
     # GPT
-    'openai/gpt-4o-mini',
-    'openai/gpt-4o',
+    {"model": "openai/gpt-4o-mini", "client": "openrouter"},
+    {"model": "openai/gpt-4o", "client": "openrouter"},
 ]
 
 class TextRequest(BaseModel):
@@ -51,11 +58,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-client = instructor.from_openai(AsyncOpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_API_KEY,
-))
 
 prompt = """
 You are a writing assistant that helps correct and improve the piece of text you're provided with. You will provide corrections and improvements for the following aspects ONLY:
@@ -86,21 +88,25 @@ async def root():
 
 @app.post("/process")
 async def process(request: TextRequest):
-    model = MODELZOO[6]
-    response = await client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": request.text},
-        ],
-        response_model=Iterable[Suggestion]
-    )
+    model = MODELZOO[-1]["model"]
+    client = MODELZOO[-1]["client"]
+
+    if client == "openrouter":
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": request.text},
+            ],
+            response_model=Iterable[Suggestion]
+        )
+        response_json = json.dumps([r.model_dump() for r in response])
 
     # Log request to DB
     con = sqlite3.connect('history.db')
     c = con.cursor()
     c.execute("INSERT INTO history (timestamp, model, input, output) VALUES (?, ?, ?, ?)",
-              (datetime.now().isoformat(), model, request.text, json.dumps([r.model_dump() for r in response])))
+              (datetime.now().isoformat(), model, request.text, response_json))
     con.commit()
     con.close()
 
