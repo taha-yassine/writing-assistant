@@ -132,10 +132,32 @@ async def process(request: TextRequest):
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/history", response_class=HTMLResponse)
-async def get_dataset_view(request: Request):
+async def get_dataset_view(request: Request, page: int = Query(1, ge=1), items_per_page: int = Query(50, ge=1, le=100)):
     con = sqlite3.connect('history.db')
     c = con.cursor()
-    c.execute("SELECT * FROM history ORDER BY timestamp DESC")
+    
+    # Get total count of rows
+    c.execute("SELECT COUNT(*) FROM history")
+    total_items = c.fetchone()[0]
+    
+    # Calculate offset
+    offset = (page - 1) * items_per_page
+    
+    # Fetch paginated data
+    c.execute("SELECT * FROM history ORDER BY timestamp DESC LIMIT ? OFFSET ?", (items_per_page, offset))
+    dataset = c.fetchall()
+    con.close()
+    
+    # Calculate total pages
+    total_pages = -(-total_items // items_per_page)  # Ceiling division
+    
+    return templates.TemplateResponse("history.html", {
+        "request": request,
+        "dataset": dataset,
+        "page": page,
+        "total_pages": total_pages,
+        "items_per_page": items_per_page
+    })
     dataset = c.fetchall()
     con.close()
     return templates.TemplateResponse("dataset.html", {"request": request, "dataset": dataset})
