@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            font-weight: 600;
+            color: #555;
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+        }
+        .old-word { color: #e74c3c; text-decoration: line-through; }
+        .new-word { color: #27ae60; }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination a {
+            color: #333;
+            padding: 8px 16px;
+            text-decoration: none;
+        }
+        .pagination a.active { color: #4CAF50; }
+    </style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Task</th>
+                <th>Processed Text</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in dataset %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td class="processed-text" data-text="{{ row[2] }}"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="?page={{ page - 1 }}&items_per_page={{ items_per_page }}">&laquo; Previous</a>
+        {% endif %}
+        
+        {% for p in range([1, page - 2]|max, [total_pages + 1, page + 3]|min) %}
+            <a href="?page={{ p }}&items_per_page={{ items_per_page }}" {% if p == page %}class="active"{% endif %}>{{ p }}</a>
+        {% endfor %}
+        
+        {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}&items_per_page={{ items_per_page }}">Next &raquo;</a>
+        {% endif %}
+    </div>
+
+    <script>
+        function processText(input) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(input, 'text/html');
+            const suggestions = doc.querySelectorAll('suggestion');
+            
+            suggestions.forEach(suggestion => {
+                const oldWord = suggestion.textContent;
+                const newWord = suggestion.getAttribute('data');
+                
+                let replacement = '';
+                if (oldWord) replacement += `<span class="old-word">${oldWord}</span>`;
+                if (newWord) replacement += `<span class="new-word">${newWord}</span>`;
+                
+                suggestion.outerHTML = replacement;
+            });
+            
+            return doc.body.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cells = document.querySelectorAll('.processed-text');
+            cells.forEach(cell => {
+                const text = cell.getAttribute('data-text');
+                cell.innerHTML = processText(text);
+            });
+        });
+    </script>
+</body>
+</html>

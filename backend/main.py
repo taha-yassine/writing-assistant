@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -158,9 +158,36 @@ async def get_dataset_view(request: Request, page: int = Query(1, ge=1), items_p
         "total_pages": total_pages,
         "items_per_page": items_per_page
     })
+
+
+@app.get("/database/coedit", response_class=HTMLResponse)
+async def get_dataset_view(request: Request, page: int = Query(1, ge=1), items_per_page: int = Query(50, ge=1, le=100)):
+    db_path = f'./gen/coedit.db'
+    con = sqlite3.connect(db_path)
+    c = con.cursor()
+    
+    # Get total count of rows
+    c.execute(f"SELECT COUNT(*) FROM coedit")
+    total_items = c.fetchone()[0]
+    
+    # Calculate offset
+    offset = (page - 1) * items_per_page
+    
+    # Fetch paginated data
+    c.execute(f"SELECT * FROM coedit LIMIT ? OFFSET ?", (items_per_page, offset))
     dataset = c.fetchall()
     con.close()
-    return templates.TemplateResponse("dataset.html", {"request": request, "dataset": dataset})
+    
+    # Calculate total pages
+    total_pages = -(-total_items // items_per_page)  # Ceiling division
+    
+    return templates.TemplateResponse("coedit.html", {
+        "request": request,
+        "dataset": dataset,
+        "page": page,
+        "total_pages": total_pages,
+        "items_per_page": items_per_page
+    })
 
 if __name__ == "__main__":
     import uvicorn
