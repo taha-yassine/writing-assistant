@@ -24,3 +24,26 @@ def diff_json(original, corrected):
                 changes.append({"old": old, "new": new})
     
     return changes
+
+def diff_tags(original, corrected):
+    """
+    Compare a text and its corrected version and return the original text with tags surrounding the changes.
+
+    Args:
+        original (str): The original text string.
+        corrected (str): The corrected text string.
+
+    Returns:
+        results (str): The original text with tags surrounding the changes.
+    """
+    differ = difflib.SequenceMatcher(None, original.split(), corrected.split())
+    result = []
+    for tag, i1, i2, j1, j2 in differ.get_opcodes():
+        if tag == 'equal':
+            result.extend(original.split()[i1:i2])
+        elif tag in ('replace', 'delete', 'insert'):
+            old = ' '.join(original.split()[i1:i2])
+            new = ' '.join(corrected.split()[j1:j2])
+            result.append(f"<suggestion data=\"{new}\">{old}</suggestion>")
+    
+    return ' '.join(result)
