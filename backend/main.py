@@ -165,27 +165,27 @@ async def get_dataset_view(page: int = 1, items_per_page: int = 50):
 
 
 @app.get("/dataset/coedit", response_class=HTMLResponse)
-async def get_dataset_view(set: str = "train", page: int = 1, items_per_page: int = 50):
+async def get_dataset_view(split: str = "train", page: int = 1, items_per_page: int = 50):
     if page < 1:
         raise HTTPException(status_code=400, detail="Page must be >= 1")
     if not 1 <= items_per_page <= 100:
         raise HTTPException(status_code=400, detail="Items per page must be between 1 and 100")
-    if set not in ["train", "eval"]:
-        raise HTTPException(status_code=400, detail="Set must be either 'train' or 'eval'")
+    if split not in ["train", "eval"]:
+        raise HTTPException(status_code=400, detail="Split must be either 'train' or 'eval'")
 
     db_path = './data/coedit.db'
     with sqlite3.connect(db_path) as con:
         c = con.cursor()
         
         # Get total count of rows for the selected set
-        c.execute("SELECT COUNT(*) FROM dataset WHERE split = ?", (set,))
+        c.execute("SELECT COUNT(*) FROM dataset WHERE split = ?", (split,))
         total_items = c.fetchone()[0]
         
         # Calculate offset
         offset = (page - 1) * items_per_page
         
         # Fetch paginated data for the selected set
-        c.execute("SELECT * FROM dataset WHERE split = ? ORDER BY id ASC LIMIT ? OFFSET ?", (set, items_per_page, offset))
+        c.execute("SELECT * FROM dataset WHERE split = ? ORDER BY id ASC LIMIT ? OFFSET ?", (split, items_per_page, offset))
         dataset = c.fetchall()
     
     # Calculate total pages
