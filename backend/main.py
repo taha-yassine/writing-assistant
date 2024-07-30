@@ -164,29 +164,35 @@ async def get_dataset_view(page: int = 1, items_per_page: int = 50):
     })
 
 
-@app.get("/database/coedit", response_class=HTMLResponse)
-async def get_dataset_view(request: Request, page: int = Query(1, ge=1), items_per_page: int = Query(50, ge=1, le=100)):
-    db_path = f'./gen/coedit.db'
-    con = sqlite3.connect(db_path)
-    c = con.cursor()
-    
-    # Get total count of rows
-    c.execute(f"SELECT COUNT(*) FROM coedit")
-    total_items = c.fetchone()[0]
-    
-    # Calculate offset
-    offset = (page - 1) * items_per_page
-    
-    # Fetch paginated data
-    c.execute(f"SELECT * FROM coedit LIMIT ? OFFSET ?", (items_per_page, offset))
-    dataset = c.fetchall()
-    con.close()
+@app.get("/dataset/coedit", response_class=HTMLResponse)
+async def get_dataset_view(set: str = "train", page: int = 1, items_per_page: int = 50):
+    if page < 1:
+        raise HTTPException(status_code=400, detail="Page must be >= 1")
+    if not 1 <= items_per_page <= 100:
+        raise HTTPException(status_code=400, detail="Items per page must be between 1 and 100")
+    if set not in ["train", "eval"]:
+        raise HTTPException(status_code=400, detail="Set must be either 'train' or 'eval'")
+
+    db_path = './data/coedit.db'
+    with sqlite3.connect(db_path) as con:
+        c = con.cursor()
+        
+        # Get total count of rows for the selected set
+        c.execute("SELECT COUNT(*) FROM dataset WHERE split = ?", (set,))
+        total_items = c.fetchone()[0]
+        
+        # Calculate offset
+        offset = (page - 1) * items_per_page
+        
+        # Fetch paginated data for the selected set
+        c.execute("SELECT * FROM dataset WHERE split = ? ORDER BY id ASC LIMIT ? OFFSET ?", (set, items_per_page, offset))
+        dataset = c.fetchall()
     
     # Calculate total pages
     total_pages = -(-total_items // items_per_page)  # Ceiling division
     
     return templates.TemplateResponse("coedit.html", {
-        "request": request,
+        "request": {},
         "dataset": dataset,
         "page": page,
         "total_pages": total_pages,
