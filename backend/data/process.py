@@ -23,13 +23,14 @@ def process_line(line):
 def process_chunk(chunk):
     return [process_line(line) for line in chunk]
 
-def process_jsonl(file_path, db_path, chunk_size=1000):
+def process_jsonl(file_path, db_path, split=None, chunk_size=1000):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS coedit (
+    CREATE TABLE IF NOT EXISTS dataset (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        split TEXT,
         task TEXT,
         text TEXT
     )
@@ -40,9 +41,9 @@ def process_jsonl(file_path, db_path, chunk_size=1000):
             chunk_generator = iter(lambda: list(itertools.islice(file, chunk_size)), [])
             for chunk in chunk_generator:
                 processed_data = pool.apply(process_chunk, (chunk,))
-                cursor.executemany('''
-                INSERT INTO coedit (task, text)
-                VALUES (:task, :text)
+                cursor.executemany(f'''
+                INSERT INTO dataset (split, task, text)
+                VALUES ('{split}', :task, :text)
                 ''', processed_data)
                 conn.commit()
 
@@ -50,6 +51,9 @@ def process_jsonl(file_path, db_path, chunk_size=1000):
 
 #%%
 if __name__ == "__main__":
-    file_path = "./datasets/coedit.jsonl"
+    train_file_path = "./datasets/coedit/train.jsonl"
+    eval_file_path = "./datasets/coedit/eval.jsonl"
     db_path = "./coedit.db"
-    process_jsonl(file_path, db_path)
+    
+    process_jsonl(train_file_path, db_path, split="train")
+    process_jsonl(eval_file_path, db_path, split="eval")
