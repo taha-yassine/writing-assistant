@@ -44,6 +44,7 @@ def diff_tags(original, corrected):
         elif tag in ('replace', 'delete', 'insert'):
             old = ' '.join(original.split()[i1:i2])
             new = ' '.join(corrected.split()[j1:j2])
-            result.append(f"<suggestion data=\"{new}\">{old}</suggestion>")
+            new = new.replace('"', '&quot;') # Escape double quotes
+            result.append(f'<suggestion data="{new}">{old}</suggestion>')
     
     return ' '.join(result)
