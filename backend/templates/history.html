@@ -58,7 +58,7 @@
                 <td>{{ row[0] }}</td>
                 <td class="timestamp">{{ row[1] }}</td>
                 <td>{{ row[2] }}</td>
-                <td class="processed-text" data-input="{{ row[3] }}" data-output="{{ row[4] }}"></td>
+                <td class="processed-text" data-input="{{ row[4] }}" data-output="{{ row[5] }}" data-format="{{ row[3] }}"></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -71,16 +71,36 @@
     </div>
 
     <script>
-        function processText(input, output) {
+        function processText(input, output, format) {
             let processedText = input;
-            const changes = JSON.parse(output);
-            
-            changes.forEach(change => {
-                const oldWord = change.old;
-                const newWord = change.new;
-                const regex = new RegExp(oldWord, 'g');
-                processedText = processedText.replace(regex, `<span class="old-word">${oldWord}</span><span class="new-word">${newWord}</span>`);
-            });
+            let changes;
+
+            if (format === 'json') {
+                changes = JSON.parse(output);
+                changes.forEach(change => {
+                    const oldWord = change.old;
+                    const newWord = change.new;
+                    const regex = new RegExp(oldWord, 'g');
+                    processedText = processedText.replace(regex, `<span class="old-word">${oldWord}</span><span class="new-word">${newWord}</span>`);
+                });
+            } else if (format === 'xml') {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(output, 'text/html');
+                const suggestions = doc.querySelectorAll('suggestion');
+                
+                suggestions.forEach(suggestion => {
+                    const oldWord = suggestion.textContent;
+                    const newWord = suggestion.getAttribute('data');
+                    
+                    let replacement = '';
+                    if (oldWord) replacement += `<span class="old-word">${oldWord}</span>`;
+                    if (newWord) replacement += `<span class="new-word">${newWord}</span>`;
+                    
+                    suggestion.outerHTML = replacement;
+                });
+
+                processedText = doc.body.innerHTML;
+            }
             
             return processedText;
         }
@@ -103,7 +123,8 @@
             cells.forEach(cell => {
                 const input = cell.getAttribute('data-input');
                 const output = cell.getAttribute('data-output');
-                cell.innerHTML = processText(input, output);
+                const format = cell.getAttribute('data-format');
+                cell.innerHTML = processText(input, output, format);
             });
 
             const timestampCells = document.querySelectorAll('.timestamp');
