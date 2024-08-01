@@ -1,4 +1,5 @@
 import difflib
+import re
 
 def diff_json(original, corrected):
     """
@@ -48,3 +49,17 @@ def diff_tags(original, corrected):
             result.append(f'<suggestion data="{new}">{old}</suggestion>')
     
     return ' '.join(result)
+
+def verify_correction(original, corrected):
+    """
+    Verify that the original text can be reconstructed by stripping out the suggestion tags from the corrected text.
+
+    Args:
+        original (str): The original text string.
+        corrected (str): The corrected text string.
+
+    Returns:
+        bool: True if the original text can be reconstructed from the corrected text, False otherwise.
+    """
+    corrected = re.sub(r'<suggestion data="([^"]*)">([^<]*)</suggestion>', r'\2', corrected)
+    return original == corrected

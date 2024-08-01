@@ -1,3 +1,4 @@
+import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -155,6 +156,8 @@ async def process(request: TextRequest, format: str = "xml"):
                 ],
             )
             response = re.sub(r'^\s*|\s*<\/output>\s*$', '', response.choices[0].message.content)
+            if not verify_correction(request.text, response):
+                raise HTTPException(status_code=400, detail="Could not produce a valid response")
     elif format == "json":
         if client == "openrouter":
             response = await client.chat.completions.create(
