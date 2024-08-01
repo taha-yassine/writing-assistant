@@ -18,7 +18,12 @@ load_dotenv()
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 
 # Clients
-client_openrouter = instructor.from_openai(AsyncOpenAI(
+client_openrouter = AsyncOpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
+
+client_openrouter_instructor = instructor.from_openai(AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
 ))
@@ -68,7 +73,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-prompt = """
+prompt_xml = """
+You are a writing assistant that helps correct and improve the piece of text you're provided with. You will provide corrections and improvements for the following aspects ONLY:
+- Grammar
+- Spelling
+- Punctuation
+
+Examples:
+<input>
+Hi Dan We are goes to go around " Cinepolis " I've seen a very beautiful film and I wanting to sees it again, the film is " Los increibles " it's a funny film I am sure you are going to enjoy, we'll go with all my friends so I'll see you at despite home at 7: 00 pm and we will be in the cinema for 8 o'clock see you
+</input>
+
+<output>
+Hi Dan We are <suggestion data="going">goes</suggestion> to go <suggestion data="to">around</suggestion> " Cinepolis <suggestion data="&quot;.">"</suggestion> I've seen a very beautiful film and I <suggestion data="want">wanting</suggestion> to <suggestion data="see">sees</suggestion> it again, the film is " Los increibles <suggestion data="&quot;,">"</suggestion> it's a funny <suggestion data="film,">film</suggestion> I am sure you <suggestion data="are">being</suggestion> going to <suggestion data="enjoy it,">enjoy,</suggestion> we'll go with all my friends <suggestion data="so I'll see">by I seen</suggestion> you <suggestion data="at">despite</suggestion> home at 7: 00 pm and we will be in the cinema <suggestion data="at">for</suggestion> 8 <suggestion data="o'clock. See">o'clock see</suggestion> you
+</output>
+
+##########
+
+<input>
+We, as mexican people, must works hard together to finding a ways to explate and develope the Mexican tourist industries, which not only gave us the " dollars " we need but helps us to recovered all the natural resources that have been highly destroyed and not due towards the tourists industry itself.
+</input>
+
+<output>
+We, as <suggestion data="Mexican">mexican</suggestion> people, must <suggestion data="work">works</suggestion> hard together to <suggestion data="find">finding</suggestion> a <suggestion data="way">ways</suggestion> to <suggestion data="exploit">explate</suggestion> and <suggestion data="develop">develope</suggestion> the Mexican tourist <suggestion data="industry,">industries,</suggestion> which not only <suggestion data="gives">gave</suggestion> us the " dollars " we need but helps us to <suggestion data="recover">recovered</suggestion> all the natural resources that have been highly destroyed and not due <suggestion data="to">towards</suggestion> the <suggestion data="tourist">tourists</suggestion> industry itself.
+</output>
+
+##########
+
+<input>
+Now a day student changed many aspects around thier study in orders to study useful subject without the filed that they really liking to study therefore, that will reflect the benefit on I students and the socities However, some people believe that student upon they  allowed to studied useful only regardless  their diser which will give  the motivate to carried on studies, In my opinion we should allow them to studying what they like and where rather than restricted them within word certain subjects such as science and technology, and also we should incourage our student to choos. the eara that might be flowrshing their life and transferring the knowledges they obtains along prctices.
+</input>
+
+<output>
+<suggestion data="Nowadays students have">Now a day student</suggestion> changed many aspects <suggestion data="of their studies">around thier study</suggestion> in <suggestion data="order">orders</suggestion> to study useful <suggestion data="subjects in a field">subject without the filed</suggestion> that they really <suggestion data="like">liking</suggestion> to study therefore, that will <suggestion data="be reflected in">reflect</suggestion> the benefit <suggestion data="to">on I</suggestion> students and <suggestion data="societies.">the socities</suggestion> However, some people believe that <suggestion data="students, if">student upon</suggestion> they <suggestion data="are"></suggestion> allowed to <suggestion data="study something">studied</suggestion> useful <suggestion data="only,">only</suggestion> regardless <suggestion data="of"></suggestion> their <suggestion data="desire">diser</suggestion> which will give <suggestion data="them"></suggestion> the <suggestion data="motivation">motivate</suggestion> to <suggestion data="carry">carried</suggestion> on <suggestion data="studying.">studies,</suggestion> In my opinion we should allow them to <suggestion data="study">studying</suggestion> what they like and where rather than <suggestion data="restricting">restricted</suggestion> them <suggestion data="to choosing">within word</suggestion> certain subjects such as science and technology, and also we should <suggestion data="encourage">incourage</suggestion> our <suggestion data="students">student</suggestion> to <suggestion data="choose in">choos.</suggestion> the <suggestion data="era when their life">eara that</suggestion> might be <suggestion data="flourishing">flowrshing their life</suggestion> and <suggestion data="put">transferring</suggestion> the <suggestion data="knowledge">knowledges</suggestion> they <suggestion data="obtain into practice.">obtains along prctices.</suggestion>
+</output>
+
+Suggestions should be as atomic as possible.
+"""
+
+prompt_json = """
 You are a writing assistant that helps correct and improve the piece of text you're provided with. You will provide corrections and improvements for the following aspects ONLY:
 - Grammar
 - Spelling
@@ -84,8 +127,9 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   timestamp TEXT,
                   model TEXT,
+                  format TEXT,
                   input TEXT,
-                  output JSON)''')
+                  output TEXT)''')
     con.commit()
     con.close()
 
@@ -96,34 +140,46 @@ async def root():
     return {"message": "Hello World"}
 
 @app.post("/process")
-async def process(request: TextRequest):
-    model = MODELZOO[-1]["model"]
-    client = MODELZOO[-1]["client"]
+async def process(request: TextRequest, format: str = "xml"):
+    model = MODELZOO[4]["model"]
+    client = MODELZOO[4]["client"]
 
-    if client == "openrouter":
-        response = await client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": request.text},
-            ],
-            response_model=Iterable[Suggestion]
-        )
-        response_json = json.dumps([r.model_dump() for r in response])
-    elif client == "tgi":
-        response = await client.completions.create(
-            model=model,
-            prompt="Fix grammar, spelling, and punctuation: " + request.text,
-            stream=False,
-        )
-        response = diff_json(request.text, response.choices[0].text)
-        response_json = json.dumps(response)
+    if format == "xml":
+        if client == "openrouter":
+            response = await client_openrouter.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": prompt_xml},
+                    {"role": "user", "content": request.text},
+                    {"role": "assistant", "content": "<output>\n"},
+                ],
+            )
+            response = re.sub(r'^\s*|\s*<\/output>\s*$', '', response.choices[0].message.content)
+    elif format == "json":
+        if client == "openrouter":
+            response = await client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": prompt_json},
+                    {"role": "user", "content": request.text},
+                ],
+                response_model=Iterable[Suggestion]
+            )
+            response = json.dumps([r.model_dump() for r in response])
+        elif client == "tgi":
+            response = await client.completions.create(
+                model=model,
+                prompt="Fix grammar, spelling, and punctuation: " + request.text,
+                stream=False,
+            )
+            response = diff_json(request.text, response.choices[0].text)
+            response = json.dumps(response)
 
     # Log request to DB
     con = sqlite3.connect('history.db')
     c = con.cursor()
-    c.execute("INSERT INTO history (timestamp, model, input, output) VALUES (?, ?, ?, ?)",
-              (datetime.now().isoformat(), model, request.text, response_json))
+    c.execute("INSERT INTO history (timestamp, model, format, input, output) VALUES (?, ?, ?, ?, ?)",
+              (datetime.now().isoformat(), model, format, request.text, response))
     con.commit()
     con.close()
 
