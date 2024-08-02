@@ -12,6 +12,7 @@ function App() {
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const { performProcessing, loading, error } = useTextProcessing();
+  const [diffViewEnabled, setDiffViewEnabled] = useState(false);
 
   useEffect(() => {
     updateCounts(text);
@@ -30,9 +31,10 @@ function App() {
    * @returns The transformed text with <span> tags.
    */
   const processResponse = (text: string): string => {
-    return text
-      .replace(/<suggestion data="([^"]+)">/g, '<span class="highlight" data-correction="$1">')
-      .replace(/<\/suggestion>/g, '</span>');
+    return text.replace(
+      /<suggestion data="([^"]+)">([^<]+)<\/suggestion>/g,
+      '<span class="highlight"><span class="original">$2</span><span class="suggested">$1</span></span>'
+    );
   };
 
   const handleProcess = async () => {
@@ -53,6 +55,7 @@ function App() {
         <TextEditor
           text={text}
           setText={setText}
+          diffViewEnabled={diffViewEnabled}
         />
       </div>
       <SidePanel
@@ -60,6 +63,8 @@ function App() {
         charCount={charCount}
         onProcess={handleProcess}
         loading={loading}
+        diffViewEnabled={diffViewEnabled}
+        onToggleDiffView={setDiffViewEnabled}
       />
     </div>
   );

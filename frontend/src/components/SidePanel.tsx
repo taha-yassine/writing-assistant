@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
 
 interface Marker {
   id: number;
@@ -19,7 +20,9 @@ const SidePanel: React.FC<{
   charCount: number;
   onProcess: () => void;
   loading: boolean;
-}> = ({ wordCount, charCount, onProcess, loading }) => {
+  diffViewEnabled: boolean;
+  onToggleDiffView: (enabled: boolean) => void;
+}> = ({ wordCount, charCount, onProcess, loading, diffViewEnabled, onToggleDiffView }) => {
   const [markers, setMarkers] = useState<Marker[]>([
     { id: 1, title: 'Linguistic errors', description: 'Fix grammar and orthographic errors', color: '#FF0000', enabled: true },
     { id: 2, title: 'Consistency', description: 'Make the document consistent', color: '#00FF00', enabled: true },
@@ -57,6 +60,14 @@ const SidePanel: React.FC<{
 
   return (
     <div className="w-1/4 bg-gray-50 shadow-lg p-4 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className='text-lg font-semibold'>Diff view</h2>
+        <Switch 
+          checked={diffViewEnabled}
+          onCheckedChange={onToggleDiffView}
+          className="data-[state=checked]:bg-green-500" 
+        />
+      </div>
       <h2 className="text-lg font-semibold mb-4">Markers</h2>
       <TooltipProvider>
         {markers.map(marker => (

@@ -4,7 +4,8 @@ import './TextEditor.css';
 const TextEditor: React.FC<{
   text: string;
   setText: React.Dispatch<React.SetStateAction<string>>;
-}> = ({ text, setText }) => {
+  diffViewEnabled: boolean;
+}> = ({ text, setText, diffViewEnabled }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean; word: string; correction: string; node: HTMLSpanElement | null; }>({
     x: 0,
     y: 0,
@@ -19,8 +20,15 @@ const TextEditor: React.FC<{
   useEffect(() => {
     if (editorRef.current) {
       editorRef.current.innerHTML = text;
+      updateDiffViewClass();
     }
-  }, [text]);
+  }, [text, diffViewEnabled]);
+
+  const updateDiffViewClass = () => {
+    if (editorRef.current) {
+      editorRef.current.classList.toggle('diff-view', diffViewEnabled);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,7 +45,7 @@ const TextEditor: React.FC<{
 
   const handleChange = () => {
     if (editorRef.current) {
-      const newText = editorRef.current.innerText;
+      const newText = editorRef.current.innerHTML;
       setText(newText);
     }
   };
@@ -49,10 +57,12 @@ const TextEditor: React.FC<{
       // Needs a better solution for cross-browser compatibility
       const range = document.caretRangeFromPoint(e.clientX, e.clientY);
       if (range) {
-        const node = range.startContainer.parentNode as HTMLElement;
-        if (node.classList && node.classList.contains('highlight')) {
-          const word = node.textContent || '';
-          const correction = node.getAttribute('data-correction') || '';
+        const node = range.startContainer.parentNode?.parentNode as HTMLElement;
+        if (node?.classList?.contains('highlight')) {
+          const originalElement = node.querySelector('.original');
+          const suggestedElement = node.querySelector('.suggested');
+          const word = originalElement?.textContent ?? '';
+          const correction = suggestedElement?.textContent ?? '';
           setContextMenu({
             x: e.clientX,
             y: e.clientY,
@@ -108,7 +118,7 @@ const TextEditor: React.FC<{
       <div
         ref={editorRef}
         className="flex-1 p-4 overflow-auto border border-gray-300 focus:outline-none whitespace-pre-wrap"
-        contentEditable
+        contentEditable={!diffViewEnabled}
         onInput={handleChange}
         onContextMenu={handleContextMenu}
         suppressContentEditableWarning
