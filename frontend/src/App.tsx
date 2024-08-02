@@ -3,11 +3,6 @@ import TextEditor from './components/TextEditor';
 import SidePanel from './components/SidePanel';
 import { useTextProcessing } from './hooks/useTextProcessing';
 
-interface Suggestion {
-  old: string;
-  new: string;
-}
-
 function App() {
   const [text, setText] = useState(() => {
     return process.env.NODE_ENV === 'development'
@@ -17,7 +12,6 @@ function App() {
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const { performProcessing, loading, error } = useTextProcessing();
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
   useEffect(() => {
     updateCounts(text);
@@ -29,11 +23,24 @@ function App() {
     setCharCount(text.length);
   };
 
+  /**
+   * Transforms the <suggestion> tags in the response to <span> tags
+   * with the appropriate class and data attributes for highlighting.
+   * @param text - The text containing <suggestion> tags.
+   * @returns The transformed text with <span> tags.
+   */
+  const processResponse = (text: string): string => {
+    return text
+      .replace(/<suggestion data="([^"]+)">/g, '<span class="highlight" data-correction="$1">')
+      .replace(/<\/suggestion>/g, '</span>');
+  };
+
   const handleProcess = async () => {
     if (text.trim()) {
       const result = await performProcessing(text);
       if (result) {
-        setSuggestions(result);
+        const transformedText = processResponse(result);
+        setText(transformedText);
       } else {
         console.error('Text processing failed');
       }
@@ -46,7 +53,6 @@ function App() {
         <TextEditor
           text={text}
           setText={setText}
-          suggestions={suggestions}
         />
       </div>
       <SidePanel

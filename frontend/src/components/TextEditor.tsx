@@ -1,16 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './TextEditor.css';
 
-interface Suggestion {
-  old: string;
-  new: string;
-}
-
 const TextEditor: React.FC<{
   text: string;
   setText: React.Dispatch<React.SetStateAction<string>>;
-  suggestions: Suggestion[];
-}> = ({ text, setText, suggestions }) => {
+}> = ({ text, setText }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean; word: string; correction: string; node: HTMLSpanElement | null; }>({
     x: 0,
     y: 0,
@@ -26,11 +20,7 @@ const TextEditor: React.FC<{
     if (editorRef.current) {
       editorRef.current.innerHTML = text;
     }
-  }, []);
-
-  useEffect(() => {
-    highlightErrors();
-  }, [suggestions, text]);
+  }, [text]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,21 +40,6 @@ const TextEditor: React.FC<{
       const newText = editorRef.current.innerText;
       setText(newText);
     }
-  };
-
-  const highlightErrors = () => {
-    if (editorRef.current && suggestions.length > 0) {
-      let content = text;
-      suggestions.forEach((suggestion) => {
-        const regex = new RegExp(`\\b${escapeRegExp(suggestion.old)}\\b`, 'g');
-        content = content.replace(regex, `<span class="highlight" data-correction="${suggestion.new}">${suggestion.old}</span>`);
-      });
-      editorRef.current.innerHTML = content;
-    }
-  };
-
-  const escapeRegExp = (string: string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {

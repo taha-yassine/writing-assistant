@@ -2,14 +2,11 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:8000';
 
-interface Suggestion {
-  old: string;
-  new: string;
-}
-
-export const processText = async (text: string): Promise<Suggestion[]> => {
+export const processText = async (text: string): Promise<string> => {
   try {
-    const response = await axios.post<Suggestion[]>(`${API_URL}/process`, { text });
+    const response = await axios.post<string>(`${API_URL}/process`, { text }, {
+      params: { format: 'xml' },
+    });
     return response.data;
   } catch (error) {
     console.error('Error processing text:', error);
