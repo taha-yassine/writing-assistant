@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import TextEditor from './components/TextEditor';
+import Editor from './Editor';
 import SidePanel from './components/SidePanel';
 import { useTextProcessing } from './hooks/useTextProcessing';
 
@@ -52,11 +52,7 @@ function App() {
   return (
     <div className="flex h-screen bg-gray-100">
       <div className="flex-1">
-        <TextEditor
-          text={text}
-          setText={setText}
-          diffViewEnabled={diffViewEnabled}
-        />
+        <Editor />
       </div>
       <SidePanel
         wordCount={wordCount}
