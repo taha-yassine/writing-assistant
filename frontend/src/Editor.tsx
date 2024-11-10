@@ -42,6 +42,7 @@ function $prepopulatedText() {
 }
 
 const theme = {
+  paragraph: 'editor-paragraph'
 };
 
 function onError(error: Error) {
