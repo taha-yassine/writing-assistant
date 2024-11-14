@@ -73,7 +73,7 @@ function Editor() {
       {/* TODO: Add placeholder */}
       <PlainTextPlugin
         contentEditable={
-          <div ref={onRef} className="h-full">
+          <div ref={onRef} className="h-full overflow-auto">
             <ContentEditable className="h-full p-4" spellCheck={false} />
           </div>
         }
