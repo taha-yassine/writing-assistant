@@ -74,7 +74,7 @@ function Editor() {
       <PlainTextPlugin
         contentEditable={
           <div ref={onRef} className="h-full">
-            <ContentEditable className="h-full p-4" />
+            <ContentEditable className="h-full p-4" spellCheck={false} />
           </div>
         }
         ErrorBoundary={LexicalErrorBoundary}
