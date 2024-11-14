@@ -4,6 +4,8 @@ import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { LexicalErrorBoundary} from '@lexical/react/LexicalErrorBoundary';
+import InlineEditPlugin from './plugins/InlineEditPlugin';
+import { useState } from 'react';
 import { $getRoot, $createParagraphNode, $createTextNode } from 'lexical';
 
 function $prepopulatedText() {
@@ -57,15 +59,29 @@ function Editor() {
     onError,
   };
 
+  // Stores reference to editor's DOM element for positioning the inline edit input
+  const [inlineEditAnchorElem, setInlineEditAnchorElem] = useState<HTMLDivElement | null>(null);
+
+  const onRef = (_inlineEditAnchorElem: HTMLDivElement) => {
+    if (_inlineEditAnchorElem !== null) {
+      setInlineEditAnchorElem(_inlineEditAnchorElem);
+    }
+  };
+  
   return (
     <LexicalComposer initialConfig={initialConfig}>
       {/* TODO: Add placeholder */}
       <PlainTextPlugin
-        contentEditable={<ContentEditable className="h-full p-4" />}
+        contentEditable={
+          <div ref={onRef} className="h-full">
+            <ContentEditable className="h-full p-4" />
+          </div>
+        }
         ErrorBoundary={LexicalErrorBoundary}
       />
       <HistoryPlugin />
       <AutoFocusPlugin />
+      {inlineEditAnchorElem && <InlineEditPlugin anchorElement={inlineEditAnchorElem} />}
     </LexicalComposer>
   );
 }
